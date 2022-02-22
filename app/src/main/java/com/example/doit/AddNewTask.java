@@ -2,6 +2,7 @@ package com.example.doit;
 
 import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
@@ -12,6 +13,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -20,16 +22,27 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.example.doit.Adapters.ToDoAdapter;
 import com.example.doit.Model.ToDoModel;
 
+import com.allyants.notifyme.NotifyMe;
+import com.wdullaer.materialdatetimepicker.time.TimePickerDialog;
+import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
+import java.util.Calendar;
+
 
 import java.util.Objects;
 
 
-public class AddNewTask extends BottomSheetDialogFragment {
+public class AddNewTask extends BottomSheetDialogFragment implements DatePickerDialog.OnDateSetListener,TimePickerDialog.OnTimeSetListener {
     public static final String TAG = "ActionBottomDialog";
     private EditText newTaskText;
     private Button newTaskSaveButton;
 
     private DatabaseHandler db;
+
+    Calendar  now = Calendar.getInstance();
+    TimePickerDialog tpd;
+    DatePickerDialog dpd;
+    private ImageButton imageButton;
+
 
     public static AddNewTask newInstance(){
         return new AddNewTask();
@@ -58,7 +71,27 @@ public class AddNewTask extends BottomSheetDialogFragment {
         super.onViewCreated(view, savedInstanceState);
         newTaskText = Objects.requireNonNull(getView()).findViewById(R.id.newTaskText);
         newTaskSaveButton = getView().findViewById(R.id.newTaskButton);
+        imageButton=getView().findViewById(R.id.imageButton);
 
+        dpd =DatePickerDialog.newInstance(
+                AddNewTask.this,
+                now.get(Calendar.YEAR),
+                now.get(Calendar.MONTH),
+                now.get(Calendar.DAY_OF_MONTH));
+
+        tpd =TimePickerDialog.newInstance(
+                AddNewTask.this,
+                now.get(Calendar.HOUR_OF_DAY),
+                now.get(Calendar.MINUTE),
+                now.get(Calendar.SECOND),
+                false
+        );
+imageButton.setOnClickListener(new View.OnClickListener() {
+    @Override
+    public void onClick(View view) {
+        dpd.show(getFragmentManager(),"DatePickerDialog");
+    }
+});
         boolean isUpdate = false;
 
         final Bundle bundle = getArguments();
@@ -110,6 +143,7 @@ public class AddNewTask extends BottomSheetDialogFragment {
                 dismiss();
             }
         });
+
     }
 
     @Override
@@ -117,5 +151,37 @@ public class AddNewTask extends BottomSheetDialogFragment {
         Activity activity = getActivity();
         if(activity instanceof DialogCloseListener)
             ((DialogCloseListener)activity).handleDialogClose(dialog);
+    }
+
+
+    @Override
+    public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth) {
+        now.set(Calendar.YEAR,year);
+        now.set(Calendar.MONTH,monthOfYear);
+        now.set(Calendar.DAY_OF_MONTH,dayOfMonth);
+        tpd.show(getFragmentManager(),"TimePickerDialog");
+
+
+    }
+
+    @Override
+    public void onTimeSet(TimePickerDialog view, int hourOfDay, int minute, int second) {
+        now.set(Calendar.HOUR_OF_DAY,hourOfDay);
+        now.set(Calendar.MINUTE,minute);
+        now.set(Calendar.SECOND,second);
+
+        NotifyMe notifyMe= new NotifyMe.Builder(getContext().getApplicationContext())
+                .title(newTaskText.getText().toString())
+                .content(newTaskText.getText().toString())
+                .color(255,0,0,255)
+                .led_color(255,255,255,255)
+                .time(now)
+                .addAction(new Intent(),"snooze",false)
+                .key("test")
+                .addAction(new Intent(),"Dismiss", true,false)
+                .addAction(new Intent(), "Done")
+                .large_icon(R.mipmap.ic_launcher_round)
+                .build();
+
     }
 }
